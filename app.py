@@ -6,8 +6,6 @@ app = Flask(__name__)
 app.config.from_object("config.Config")
 db = SQLAlchemy(app)
 
-from models import User
-
 db.create_all()
 db.session.commit()
 
