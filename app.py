@@ -1,17 +1,20 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
-
-
+from server.db.database import db
+from server.routes.home import home_page
+from server.routes.auth_routes import auth
 app = Flask(__name__)
 app.config.from_object("config.Config")
-db = SQLAlchemy(app)
 
-db.create_all()
-db.session.commit()
+app.register_blueprint(home_page)
+app.register_blueprint(auth)
 
-@app.route('/')
-def hello_world():
-    return 'Hello World!'
+
+# import models to create the tables!
+db.init_app(app)
+with app.app_context():
+    db.create_all()
+    db.session.commit()
 
 
 if __name__ == '__main__':
