@@ -11,21 +11,16 @@ def token_required(f):
     @wraps(f)
     def decorator(*args, **kwargs):
 
-        # token = None
-
         headers = flask.request.headers
         bearer = headers.get('Authorization')  # Bearer YourTokenHere
         token = bearer.split()[1]
-
-        # if 'x-access-tokens' in request.authorization:
-        #     token = request.headers['x-access-tokens']
 
         if not token:
             return jsonify({'message': 'a valid token is missing'})
 
         try:
-            data = jwt.decode(token, current_app.config['SECRET_KEY'])
-            current_user = User.query.filter_by(id=data['id']).first()
+            data = jwt.decode(token, current_app.config['SECRET_KEY'], 'HS256')
+            current_user = User.query.filter_by(id=data['public_id']).first()
         except:
             return jsonify({'message': 'token is invalid'})
 

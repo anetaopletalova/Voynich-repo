@@ -1,4 +1,5 @@
 import datetime
+import json
 
 import jwt
 from flask import Blueprint, request, jsonify, make_response, current_app
@@ -36,9 +37,9 @@ def login_user():
     user = User.query.filter_by(email=auth.username).first()
 
     if check_password_hash(user.password, auth.password):
-        token = jwt.encode(
-            {'public_id': user.id, 'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=30)},
-            current_app.config['SECRET_KEY'])
-        return jsonify({'token': token, 'user': user})
+        key = current_app.config['SECRET_KEY']
+        vdate = datetime.datetime.utcnow() + datetime.timedelta(minutes=30)
+        token = jwt.encode({'public_id': user.id, 'exp': vdate}, key)
+        return jsonify(token)
 
     return make_response('could not verify', 401, {'WWW.Authentication': 'Basic realm: "login required"'})

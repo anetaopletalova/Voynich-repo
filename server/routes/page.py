@@ -5,9 +5,9 @@ from server.utils.helpers import token_required
 page_route = Blueprint('page_route', __name__)
 
 
-@page_route.route('/pages', methods=['POST', 'GET'])
+@page_route.route('/pages', methods=['GET'])
 @token_required
-def get_authors():
+def get_books(current_user):
     pages = Page.query.all()
 
     output = []
