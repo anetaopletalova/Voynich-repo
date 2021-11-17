@@ -68,35 +68,51 @@ class Page(db.Model):
 class Classification(db.Model):
     __tablename__ = "classification"
 
+    id = db.Column(db.Integer, unique=True, primary_key=True) #odpovida classification_id = na jedne strance jeden clovek co vse udelal
+    page_id = db.Column(db.Integer, db.ForeignKey(Page.id))
+
+    page = db.relationship('Page', foreign_keys='Classification.page_id')
+
+
+class Marking(db.Model):
+    __tablename__ = "marking"
+
     id = db.Column(db.Integer, primary_key=True)
-    page_id = db.Column(db.Integer, db.ForeignKey(Page.id), primary_key=True)
+    classification_id = db.Column(db.Integer, db.ForeignKey(Classification.id))
+    page_id = db.Column(db.Integer, db.ForeignKey(Page.id))
     x = db.Column(db.Float)
     y = db.Column(db.Float)
     width = db.Column(db.Float)
     height = db.Column(db.Float)
     description = db.Column(db.Text)
 
-    page = db.relationship('Page', foreign_keys='Classification.page_id')
+    page = db.relationship('Page', foreign_keys='Marking.page_id')
+    classification = db.relationship('Classification', foreign_keys='Marking.classification_id')
 
 
 class Description(db.Model):
     __tablename__ = "description"
 
     id = db.Column(db.Integer, primary_key=True)
-    page_id = db.Column(db.Integer, db.ForeignKey(Page.id), primary_key=True)
+    page_id = db.Column(db.Integer, db.ForeignKey(Page.id))
+    classification_id = db.Column(db.Integer, db.ForeignKey(Classification.id))
     description = db.Column(db.Text)
 
     page = db.relationship('Page', foreign_keys='Description.page_id')
+    classification = db.relationship('Classification', foreign_keys='Description.classification_id')
 
 
 class Visited(db.Model):
     __tablename__ = "visited"
 
     id = db.Column(db.Integer, primary_key=True)
+    # mozna nebude potreba ani page_id
     page_id = db.Column(db.Integer, db.ForeignKey(Page.id), primary_key=True)
-    description = db.Column(db.Text)
+    classification_id = db.Column(db.Integer, db.ForeignKey(Classification.id), primary_key=True)
 
+    classification = db.relationship('Classification', foreign_keys='Visited.classification_id')
     page = db.relationship('Page', foreign_keys='Visited.page_id')
+
 
 
 class Token(db.Model):
@@ -107,20 +123,9 @@ class Token(db.Model):
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     token = db.Column(db.String(500), unique=True, nullable=False)
-    blacklisted_on = db.Column(db.DateTime, nullable=False)
 
     def __init__(self, token):
         self.token = token
-        self.blacklisted_on = datetime.datetime.now()
 
     def __repr__(self):
         return '<id: token: {}'.format(self.token)
-
-    @staticmethod
-    def check_blacklist(auth_token):
-        # check whether auth token has been blacklisted
-        res = Token.query.filter_by(token=str(auth_token)).first()
-        if res:
-            return True
-        else:
-            return False
