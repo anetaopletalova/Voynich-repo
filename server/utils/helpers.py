@@ -1,6 +1,4 @@
 from functools import wraps
-
-import flask
 import jwt
 from flask import request, jsonify, current_app
 
@@ -11,12 +9,13 @@ def token_required(f):
     @wraps(f)
     def decorator(*args, **kwargs):
 
-        headers = flask.request.headers
+        headers = request.headers
         bearer = headers.get('Authorization')  # Bearer YourTokenHere
-        token = bearer.split()[1]
 
-        if not token:
+        if not bearer:
             return jsonify({'message': 'a valid token is missing'})
+
+        token = bearer.split()[1]
 
         try:
             data = jwt.decode(token, current_app.config['SECRET_KEY'], 'HS256')

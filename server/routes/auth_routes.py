@@ -36,10 +36,17 @@ def login_user():
 
     user = User.query.filter_by(email=auth.username).first()
 
+    if not user:
+        return make_response('user does not exist', 401, {'WWW.Authentication': 'Basic realm: "login required"'})
+
     if check_password_hash(user.password, auth.password):
         key = current_app.config['SECRET_KEY']
         date = datetime.datetime.utcnow() + datetime.timedelta(minutes=30)
         token = jwt.encode({'public_id': user.id, 'exp': date}, key)
-        return jsonify(token)
+        response = jsonify({'token': token, 'user_id': user.id, 'email': user.email})
+        response.headers.add("Access-Control-Allow-Origin", "*")
+        # response.headers.add('Access-Control-Allow-Headers', "*")
+        # response.headers.add('Access-Control-Allow-Methods', "*")
+        return response
 
     return make_response('could not verify', 401, {'WWW.Authentication': 'Basic realm: "login required"'})
