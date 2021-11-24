@@ -1,12 +1,9 @@
-import datetime
-import json
-
 import jwt
 from flask import Blueprint, request, jsonify, make_response, current_app
 from werkzeug.security import generate_password_hash, check_password_hash
-
 from server.db.database import db
 from server.db.models import User
+from server.utils.helpers import generate_token
 
 auth = Blueprint('auth', __name__)
 
@@ -27,7 +24,7 @@ def signup_user():
     return jsonify({'message': 'registered successfully'})
 
 
-@auth.route('/login', methods=['GET', 'POST'])
+@auth.route('/login', methods=['POST'])
 def login_user():
     auth = request.authorization
 
@@ -40,13 +37,22 @@ def login_user():
         return make_response('user does not exist', 401, {'WWW.Authentication': 'Basic realm: "login required"'})
 
     if check_password_hash(user.password, auth.password):
-        key = current_app.config['SECRET_KEY']
-        date = datetime.datetime.utcnow() + datetime.timedelta(minutes=30)
-        token = jwt.encode({'public_id': user.id, 'exp': date}, key)
-        response = jsonify({'token': token, 'user_id': user.id, 'email': user.email})
-        response.headers.add("Access-Control-Allow-Origin", "*")
-        # response.headers.add('Access-Control-Allow-Headers', "*")
-        # response.headers.add('Access-Control-Allow-Methods', "*")
+        token = generate_token(user.id, 'access')
+        refresh_token = generate_token(user.id, 'refresh')
+
+        response = jsonify({'token': token, 'refresh_token': refresh_token, 'user_id': user.id, 'email': user.email})
         return response
 
     return make_response('could not verify', 401, {'WWW.Authentication': 'Basic realm: "login required"'})
+
+
+@auth.route('/refresh', methods=['POST'])
+def refresh_token():
+    req = request.get_json()
+    refresh_tok = req["refresh_token"]
+    data = jwt.decode(refresh_tok, current_app.config['SECRET_KEY'], 'HS256')
+    current_user = User.query.filter_by(id=data['uid']).first()
+    token = generate_token(current_user.id, 'access')
+    new_refresh_token = generate_token(current_user.id, 'refresh')
+    response = jsonify({'token': token, 'refresh_token': new_refresh_token})
+    return response

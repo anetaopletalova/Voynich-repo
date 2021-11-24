@@ -108,7 +108,7 @@ def import_classifications(file_name, date_from):
     # with open('data.json', 'w', encoding='utf-8') as f:
     #     json.dump(data_dictionary, f, ensure_ascii=False, indent=4)
 
-    # s.bulk_save_objects(classifications)
+    s.bulk_save_objects(classifications)
     s.commit()
     s.bulk_save_objects(markings)
     s.bulk_save_objects(descriptions)
