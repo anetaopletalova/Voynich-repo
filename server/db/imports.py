@@ -8,45 +8,30 @@ from sqlalchemy.orm import Session
 from server.db.models import Page, Classification, Marking, Description
 
 
-class Descriptio:
-    def __init__(self, description):
-        self.description = description
-
-    def toJSON(self):
-        return json.dumps(self, default=lambda o: o.__dict__,
-                          sort_keys=True, indent=4)
-
-
-class Identification:
-    def __init__(self, class_id, x, y, width, height, description):
-        self.x = x
-        self.y = y
-        self.width = width
-        self.height = height
-        self.description = description
-        self.class_id = class_id
-
-    def toJSON(self):
-        return json.dumps(self, default=lambda o: o.__dict__,
-                          sort_keys=True, indent=4)
-
-
-def import_classifications(file_name, date_from):
+def import_classifications(file_name):
     engine = create_engine('postgresql+psycopg2://postgres:admin@localhost:5433/postgres')
     s = Session(bind=engine)
     markings = []
     descriptions = []
     classifications = []
 
+    config_file = open("import_config.txt", "r+")
+    last_date_value = config_file.readlines()[-1]
+    last_date_value_parsed = datetime.strptime(last_date_value[0:19], "%Y-%m-%d %H:%M:%S")
     # exported classification.csv
     data = pandas.read_csv(file_name)
     for index, row in data.iterrows():
+        created_at = row['created_at']
+
+        # pokud jsem na poslednim radku, zapisu si toto datum jako nove posledni
+        if index == data.index[-1]:
+            config_file.write("\n"+created_at)
 
         # filter out dates before selected date
-        created = row['created_at']
+        parsed_created_at = datetime.strptime(created_at[0:19], "%Y-%m-%d %H:%M:%S")
+        # datetime.strptime(created[0:10], "%Y-%m-%d")
 
-        parsed_created_at = datetime.strptime(created[0:10], "%Y-%m-%d")
-        if parsed_created_at < date_from:
+        if last_date_value_parsed and parsed_created_at < last_date_value_parsed:
             continue
 
         annotations = pandas.read_json(row['annotations'])
@@ -56,20 +41,28 @@ def import_classifications(file_name, date_from):
         file_data = json.loads(file.to_json())
         filename = pandas.DataFrame(file_data.values())['Filename'][0]
         classif_id = row['classification_id']
+        user_id = row['user_id']
+        user_name = row['user_name']
+
         # najit podle fileName odpovidajici ID stranky v DB
         page_file = Page.query.filter_by(name=filename).first()
         # FIX
-        if page_file is not None:
-            new_classification = Classification(
-                id=classif_id,
-                page_id=page_file.id
-            )
-            classifications.append(new_classification)
+        # if page_file is not None:
+        #     new_classification = Classification(
+        #         id=classif_id,
+        #         page_id=page_file.id,
+        #         user_id=user_id,
+        #         user_name=user_name,
+        #         created_at=created_at
+        #     )
+        #     classifications.append(new_classification)
         # na jedne strance jeden clovek co vse udelal - ulozit to Classification
         # do Description a Marking pak uz konkretni ohodnoceni s classification_id odpovidajici tomuto (mozna i page_id)
 
         # '0' for task 0 , '1' for task 1
         x = pandas.DataFrame(an_data['value']['0'])
+        m_to_save = []
+        new_page_description = ''
         if len(pandas.DataFrame(an_data['value']['0'])) > 0:
             data_classifications = an_data['value']['0']
             page_description = an_data['value']['1']
@@ -85,29 +78,32 @@ def import_classifications(file_name, date_from):
                     y=classification['y'],
                     width=classification['width'],
                     height=classification['height'],
-                    description=list(classification['details'][0].values())[0])
+                    description=list(classification['details'][0].values())[0].rstrip("\n"))
                 markings.append(new_marking)
-                # if filename in data_dictionary:
-                #     data_dictionary[filename].append(new_marking.toJSON())
-                # else:
-                #     data_dictionary[filename] = [new_marking.toJSON()]
+                m_to_save.append(new_marking.serialized)
+
             if page_description != '':
                 new_description = Description(
                     page_id=page_file.id,
-                    classification_id = classif_id,
-                    description = page_description,
+                    classification_id=classif_id,
+                    description=page_description,
                 )
                 descriptions.append(new_description)
-                # data_dictionary[filename].append(description_text.toJSON())
+                new_page_description = page_description
 
-    # for key, values in data_dictionary.items():
-    #     print(key)
-    #     for value in values:
-    #         print(value)
+        if page_file is not None:
+            new_classification = Classification(
+                id=classif_id,
+                page_id=page_file.id,
+                user_id=int(user_id) if isinstance(user_id, int) else -1,
+                user_name=user_name,
+                created_at=created_at,
+                markings=json.dumps(m_to_save),
+                description=new_page_description
+            )
+            classifications.append(new_classification)
 
-    # with open('data.json', 'w', encoding='utf-8') as f:
-    #     json.dump(data_dictionary, f, ensure_ascii=False, indent=4)
-
+    config_file.close()
     s.bulk_save_objects(classifications)
     s.commit()
     s.bulk_save_objects(markings)

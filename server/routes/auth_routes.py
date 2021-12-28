@@ -54,5 +54,6 @@ def refresh_token():
     current_user = User.query.filter_by(id=data['uid']).first()
     token = generate_token(current_user.id, 'access')
     new_refresh_token = generate_token(current_user.id, 'refresh')
+    # TODO add user here to be able to login
     response = jsonify({'token': token, 'refresh_token': new_refresh_token})
     return response

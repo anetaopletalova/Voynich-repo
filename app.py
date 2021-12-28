@@ -7,6 +7,7 @@ from server.routes.home import home_page
 from server.routes.auth_routes import auth
 from server.routes.page import page_route
 
+
 app = Flask(__name__)
 app.config.from_object("config.Config")
 
@@ -19,9 +20,13 @@ CORS(app)
 
 db.init_app(app)
 with app.app_context():
+    # db.drop_all()
     db.create_all()
-    db.session.commit()
+    # seed_db()
     # import_data()
+    db.session.commit()
+
+    pass
 
 if __name__ == '__main__':
     app.run()
