@@ -1,13 +1,11 @@
 import json
-from types import SimpleNamespace
-
+from datetime import datetime
 from flask import Blueprint, jsonify, request, Response
-from sqlalchemy import select, desc
-from sqlalchemy.engine import row
+from sqlalchemy import desc, func
 from werkzeug.exceptions import Unauthorized
 
 from server.db.database import db
-from server.db.models import Page, Classification, Description, Visited, Note, Marking
+from server.db.models import Page, Classification, Description, Visited, Note, Marking, Favorite
 from server.utils.helpers import token_required
 
 page_route = Blueprint('page_route', __name__)
@@ -29,27 +27,16 @@ def get_pages(current_user):
 @page_route.route('/page/<int:page_id>', methods=['GET'])
 # @token_required
 def get_page_classifications(page_id):
-    # TODO pagination
-    # page = request.args.get('page', 1, type=int)
-    # per_page = request.args.get('per_page', 20, type=int)
-    # bookings_query = TelehealthBookings.query.filter_by(**query_filter). \
-    #     order_by(TelehealthBookings.target_date_utc.desc(),
-    #              TelehealthBookings.booking_window_id_start_time_utc.desc()).paginate(page, per_page, error_out=False)
-    # record_query = Record.query.paginate(page, per_page, False)
-    # total = record_query.total
-    # record_items = record_query.items
+    date_to = request.args.get('date_to', datetime.utcnow(), type=str)
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 20, type=int)
 
-
-    # TODO optional argument date from to help filtering
-    # req = request.get_json()
-    # date_from = req["date_from"]
-    # year = request.args.get('year', datetime.now().year, type=int)
-
-    qq = db.session.query(Page, Classification, Visited, Note).join(Classification, Page.id == Classification.page_id, isouter=True)\
-        .order_by(desc(Classification.created_at)) \
-        .join(Note, Note.classification_id == Classification.id and Note.user_id == 1, isouter=True)\
+    qq = db.session.query(Page, Classification, Visited, Note, Favorite).join(Classification, Page.id == Classification.page_id, isouter=True) \
+        .filter(Page.id == page_id).filter(func.date(Classification.created_at) <= func.date(date_to)) \
+        .join(Note, Note.classification_id == Classification.id and Note.user_id == 1, isouter=True) \
+        .join(Favorite, Favorite.classification_id == Classification.id and Favorite.user_id == 1, isouter=True) \
         .join(Visited, Visited.classification_id == Classification.id and Visited.user_id == 1, isouter=True) \
-        .filter(Page.id == page_id).all()
+        .order_by(desc(Classification.created_at)).paginate(page, per_page, error_out=False).items
 
     page_classifications = [dict(r) for r in qq]
 
@@ -57,9 +44,6 @@ def get_page_classifications(page_id):
     for classification in page_classifications:
         if classification['Classification'] is None:
             continue
-        # print(classification)
-        # markings = Marking.query.filter_by(classification_id=classification['Classification'].id).all()
-        # description = Description.query.filter_by(classification_id=classification['Classification'].id).first()
 
         classifications_payload.append({
             'classification_id': classification['Classification'].id,
@@ -67,6 +51,7 @@ def get_page_classifications(page_id):
             'description': classification['Classification'].description if classification['Classification'].description else '',
             'markings': json.loads(classification['Classification'].markings),
             'visited': True if classification['Visited'] else False,
+            'favorite': True if classification['Favorite'] else False,
             'user_id': classification['Classification'].user_id,
             'user_name': classification['Classification'].user_name,
             'created_at': classification['Classification'].created_at,
@@ -149,13 +134,38 @@ def classification_details(classification_id, ):
 # @token_required
 def users_classifiations():
     user_name = request.args.get('user_name')
-    classifications = Classification.query.filter_by(user_name=user_name).all()
-    page_classifications = []
-    #
-    for c in classifications:
-        page_classifications.append(c.serialized)
 
-    payload = {'page_classifications': page_classifications}
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 20, type=int)
+
+    qq = db.session.query(Classification, Visited, Note, Favorite).filter_by(user_name=user_name) \
+        .join(Note, Note.classification_id == Classification.id and Note.user_id == 1, isouter=True) \
+        .join(Favorite, Favorite.classification_id == Classification.id and Favorite.user_id == 1, isouter=True) \
+        .join(Visited, Visited.classification_id == Classification.id and Visited.user_id == 1, isouter=True) \
+        .order_by(desc(Classification.created_at)).paginate(page, per_page, error_out=False).items
+
+    page_classifications = [dict(r) for r in qq]
+
+    classifications_payload = []
+    for classification in page_classifications:
+        if classification['Classification'] is None:
+            continue
+
+        classifications_payload.append({
+            'classification_id': classification['Classification'].id,
+            'note': classification['Note'].text if classification['Note'] else '',
+            'description': classification['Classification'].description if classification[
+                'Classification'].description else '',
+            'markings': json.loads(classification['Classification'].markings),
+            'visited': True if classification['Visited'] else False,
+            'favorite': True if classification['Favorite'] else False,
+            'user_id': classification['Classification'].user_id,
+            'user_name': classification['Classification'].user_name,
+            'created_at': classification['Classification'].created_at,
+        })
+
+    payload = {'page_classifications': classifications_payload}
+
     return payload
 
 
@@ -165,8 +175,12 @@ def get_all_with_note(user_id):
     # if not (current_user.id == user_id):
     #     raise Unauthorized('Unauthorized.')
 
-    qq = db.session.query(Classification, Note).join(Note, Note.classification_id == Classification.id and Note.user_id == 1).all() \
-        .order_by(desc(Classification.created_at))
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 20, type=int)
+
+    qq = db.session.query(Classification, Note, Favorite).join(Note, Note.classification_id == Classification.id and Note.user_id == 1)\
+        .join(Favorite, Favorite.classification_id == Classification.id and Favorite.user_id == 1, isouter=True) \
+        .order_by(desc(Classification.created_at)).paginate(page, per_page, error_out=False).items
 
     page_classifications = [dict(r) for r in qq]
 
@@ -174,9 +188,6 @@ def get_all_with_note(user_id):
     for classification in page_classifications:
         if classification['Classification'] is None:
             continue
-        # print(classification)
-        # markings = Marking.query.filter_by(classification_id=classification['Classification'].id).all()
-        # description = Description.query.filter_by(classification_id=classification['Classification'].id).first()
 
         classifications_payload.append({
             'classification_id': classification['Classification'].id,
@@ -184,9 +195,10 @@ def get_all_with_note(user_id):
             'description': classification['Classification'].description if classification['Classification'].description else '',
             'markings': json.loads(classification['Classification'].markings),
             'visited': True,
-            'user_id': classification['Classification'].id.user_id,
-            'user_name': classification['Classification'].id.user_name,
-            'created_at': classification['Classification'].id.created_at,
+            'favorite': True if classification['Favorite'] else False,
+            'user_id': classification['Classification'].user_id,
+            'user_name': classification['Classification'].user_name,
+            'created_at': classification['Classification'].created_at,
         })
 
     payload = {'page_classifications': classifications_payload}

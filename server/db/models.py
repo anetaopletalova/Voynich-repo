@@ -147,6 +147,6 @@ class Favorite(db.Model):
     classification_id = db.Column(db.Integer, db.ForeignKey(Classification.id))
     user_id = db.Column(db.Integer, db.ForeignKey(User.id))
 
-    classification = db.relationship('Classification', foreign_keys='Visited.classification_id')
-    user = db.relationship('User', foreign_keys='Visited.user_id')
+    classification = db.relationship('Classification', foreign_keys='Favorite.classification_id')
+    user = db.relationship('User', foreign_keys='Favorite.user_id')
 
