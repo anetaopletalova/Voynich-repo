@@ -17,15 +17,14 @@ class Page(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(128), unique=True, nullable=False)
 
-    def as_dict(self):
-        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
+    # def as_dict(self):
+    #     return {c.name: getattr(self, c.name) for c in self.__table__.columns}
 
 
 class Classification(db.Model):
     __tablename__ = "classification"
 
-    id = db.Column(db.Integer, unique=True, primary_key=True,
-                   autoincrement=True)  # odpovida classification_id = na jedne strance jeden clovek co vse udelal
+    id = db.Column(db.Integer, unique=True, primary_key=True, autoincrement=True)
     page_id = db.Column(db.Integer, db.ForeignKey(Page.id))
     user_id = db.Column(db.Integer)
     user_name = db.Column(db.String(256))
@@ -34,9 +33,9 @@ class Classification(db.Model):
     description = db.Column(db.Text)
 
     page = db.relationship('Page', foreign_keys='Classification.page_id')
-
-    def as_dict(self):
-        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
+    #
+    # def as_dict(self):
+    #     return {c.name: getattr(self, c.name) for c in self.__table__.columns}
 
     def toJSON(self):
         return json.dumps(self, default=lambda o: o.__dict__,
@@ -133,11 +132,11 @@ class Token(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     token = db.Column(db.String(500), unique=True, nullable=False)
 
-    def __init__(self, token):
-        self.token = token
-
-    def __repr__(self):
-        return '<id: token: {}'.format(self.token)
+    # def __init__(self, token):
+    #     self.token = token
+    #
+    # def __repr__(self):
+    #     return '<id: token: {}'.format(self.token)
 
 
 class Favorite(db.Model):

@@ -8,11 +8,13 @@ from server.utils.helpers import generate_token
 auth = Blueprint('auth', __name__)
 
 
-@auth.route('/register', methods=['GET', 'POST'])
+@auth.route('/register', methods=['POST'])
 def signup_user():
     data = request.get_json()
 
     hashed_password = generate_password_hash(data['password'], method='sha256')
+
+    # TODO difference between data.get() and data[]
     new_user = User(
         email=data.get('email'),
         password=hashed_password
@@ -54,6 +56,5 @@ def refresh_token():
     current_user = User.query.filter_by(id=data['uid']).first()
     token = generate_token(current_user.id, 'access')
     new_refresh_token = generate_token(current_user.id, 'refresh')
-    # TODO add user here to be able to login
-    response = jsonify({'token': token, 'refresh_token': new_refresh_token})
+    response = jsonify({'token': token, 'refresh_token': new_refresh_token, 'user': current_user})
     return response

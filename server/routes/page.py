@@ -10,6 +10,8 @@ from server.utils.helpers import token_required
 
 page_route = Blueprint('page_route', __name__)
 
+# TODO doplnit bad requesty, co kdyz se nenajde konkretni zaznam, vratit not exists
+# TODO doplnit schemata pro requesty, required polozky apod
 
 @page_route.route('/pages', methods=['GET'])
 @token_required
@@ -82,38 +84,42 @@ def visit(current_user, user_id):
     status_code = Response(status=201)
     return status_code
 
-# TODO add/remove to/from favorites
 
-
-@page_route.route('/note/<int:user_id>', methods=['POST'])
+@page_route.route('/favorite/<int:user_id>', methods=['POST'])
 @token_required
-def add_note(current_user, user_id):
-
+def add_to_favorites(current_user, user_id):
     if not (current_user.id == user_id):
         raise Unauthorized('Unauthorized.')
 
     req = request.get_json()
-    note = req["note"]
     classification_id = req["classification_id"]
 
-    new_note = Note(
+    new_favorite = Favorite(
         user_id=current_user.id,
-        classification_id=classification_id,
-        text=note
+        classification_id=classification_id
     )
 
-    db.session.add(new_note)
+    db.session.add(new_favorite)
     db.session.commit()
 
     status_code = Response(status=201)
     return status_code
 
-# TODO edit/delete poznamky
-# session.query(Tag).filter_by(tag_id=5).update({'count': Tag.count + 1})
-# session.query(Clients).filter(Clients.id == client_id_list).update({'status': status})
-# session.commit()
-# User.query.filter(User.id == 123).delete()
-# session.commit()
+@page_route.route('/favorite/<int:user_id>', methods=['DELETE'])
+@token_required
+def delete_from_favorites(current_user, user_id):
+    if not (current_user.id == user_id):
+        raise Unauthorized('Unauthorized.')
+
+    req = request.get_json()
+    classification_id = req["classification_id"]
+
+    Favorite.query.filter(Favorite.id == classification_id).delete()
+    db.session.commit()
+
+    status_code = Response(status=200)
+    return status_code
+
 
 @page_route.route('/classification/<int:classification_id>', methods=['GET'])
 # @token_required
