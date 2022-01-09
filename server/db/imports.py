@@ -80,7 +80,7 @@ def import_classifications(file_name):
                     height=classification['height'],
                     description=list(classification['details'][0].values())[0].rstrip("\n"))
                 markings.append(new_marking)
-                m_to_save.append(new_marking.serialized)
+                m_to_save.append(new_marking.serialized) #as_dict() misto serialized
 
             if page_description != '':
                 new_description = Description(

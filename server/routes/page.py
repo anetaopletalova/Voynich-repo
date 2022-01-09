@@ -1,20 +1,22 @@
 import json
 from datetime import datetime
-from flask import Blueprint, jsonify, request, Response
+from flask import Blueprint, request, Response
+from flask_accepts import responds
 from sqlalchemy import desc, func
 from werkzeug.exceptions import Unauthorized
-
 from server.db.database import db
 from server.db.models import Page, Classification, Description, Visited, Note, Marking, Favorite
-from server.utils.helpers import token_required
+from server.schema.page import ClassificationDetailSchema, PageClassificationSchema, PageSchema
+from server.utils.helpers import token_required, as_dict
 
 page_route = Blueprint('page_route', __name__)
 
 # TODO doplnit bad requesty, co kdyz se nenajde konkretni zaznam, vratit not exists
-# TODO doplnit schemata pro requesty, required polozky apod
+
 
 @page_route.route('/pages', methods=['GET'])
 @token_required
+@responds(schema=PageSchema(many=True), status_code=200)
 def get_pages(current_user):
     pages = Page.query.all()
 
@@ -23,11 +25,12 @@ def get_pages(current_user):
         page_result = {'id': page.id, 'name': page.name}
         output.append(page_result)
 
-    return jsonify({'pages': output})
+    return output
 
 
 @page_route.route('/page/<int:page_id>', methods=['GET'])
 # @token_required
+@responds(schema=PageClassificationSchema(many=True), status_code=200)
 def get_page_classifications(page_id):
     date_to = request.args.get('date_to', datetime.utcnow(), type=str)
     page = request.args.get('page', 1, type=int)
@@ -50,7 +53,7 @@ def get_page_classifications(page_id):
         classifications_payload.append({
             'classification_id': classification['Classification'].id,
             'note': classification['Note'].text if classification['Note'] else '',
-            'description': classification['Classification'].description if classification['Classification'].description else '',
+            'description': classification['Classification'].description,
             'markings': json.loads(classification['Classification'].markings),
             'visited': True if classification['Visited'] else False,
             'favorite': True if classification['Favorite'] else False,
@@ -59,9 +62,7 @@ def get_page_classifications(page_id):
             'created_at': classification['Classification'].created_at,
         })
 
-    payload = {'page_classifications': classifications_payload}
-
-    return payload
+    return classifications_payload
 
 
 @page_route.route('/visit/<int:user_id>', methods=['POST'])
@@ -105,6 +106,7 @@ def add_to_favorites(current_user, user_id):
     status_code = Response(status=201)
     return status_code
 
+
 @page_route.route('/favorite/<int:user_id>', methods=['DELETE'])
 @token_required
 def delete_from_favorites(current_user, user_id):
@@ -112,32 +114,38 @@ def delete_from_favorites(current_user, user_id):
         raise Unauthorized('Unauthorized.')
 
     req = request.get_json()
-    classification_id = req["classification_id"]
+    favorite_id = req["favorite_id"]
 
-    Favorite.query.filter(Favorite.id == classification_id).delete()
+    Favorite.query.filter(Favorite.id == favorite_id).delete()
     db.session.commit()
 
-    status_code = Response(status=200)
+    status_code = Response(status=204)
     return status_code
 
 
+# TODO NOT WORKING
 @page_route.route('/classification/<int:classification_id>', methods=['GET'])
 # @token_required
-def classification_details(classification_id, ):
+@responds(ClassificationDetailSchema, status_code=200)
+def classification_details(classification_id):
+
     markings = Marking.query.filter_by(classification_id=classification_id).all()
     description = Description.query.filter_by(classification_id=classification_id).first()
 
+    # TODO page_id?? bude vubec tento endpoint k necemu?
+
     classifications_payload = {
-        'description': json.dumps(description),
-        'markings': [x.serialized for x in markings]
+        # 'page_id': description.page_id,
+        'description': description if description else None,
+        'markings': [as_dict(x) for x in markings]
     }
 
-    payload = {'page_classifications': classifications_payload}
-    return payload
+    return classifications_payload
 
 
 @page_route.route('/classification/user', methods=['GET'])
 # @token_required
+@responds(schema=PageClassificationSchema(many=True), status_code=200)
 def users_classifiations():
     user_name = request.args.get('user_name')
 
@@ -172,11 +180,12 @@ def users_classifiations():
 
     payload = {'page_classifications': classifications_payload}
 
-    return payload
+    return classifications_payload
 
 
 @page_route.route('/classification/note/<int:user_id>', methods=['GET'])
 # @token_required
+@responds(schema=PageClassificationSchema(many=True), status_code=200)
 def get_all_with_note(user_id):
     # if not (current_user.id == user_id):
     #     raise Unauthorized('Unauthorized.')
@@ -209,4 +218,4 @@ def get_all_with_note(user_id):
 
     payload = {'page_classifications': classifications_payload}
 
-    return payload
+    return classifications_payload
