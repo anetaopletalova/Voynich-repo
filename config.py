@@ -11,3 +11,5 @@ class Config(object):
                  '+Wxb4CjHMD9hL9RnkPb+DdaIxlxEGreoHQF+Lu9WBS7LH0m1qmUaZLPxn8R1H/k2mtjoAOK+BrqEO0lHI+GudA7LU3Gds' \
                  '/wc3wvVyFBMJjIZmjNP4kkKscGaA5Tfqdy2Q== '
     BCRYPT_LOG_ROUNDS = 13
+    CLASSIFICATION_PATH = 'C:/Users/AnetaOpletalova/Desktop/VoynichExports/voynich-manuscript-classifications.csv'
+

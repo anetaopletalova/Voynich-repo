@@ -1,16 +1,13 @@
 from datetime import datetime
 import pandas
 import json
-
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session
-
+from server.db.database import db
 from server.db.models import Page, Classification, Marking, Description
+from server.utils.helpers import as_dict
 
 
 def import_classifications(file_name):
-    engine = create_engine('postgresql+psycopg2://postgres:admin@localhost:5433/postgres')
-    s = Session(bind=engine)
+    s = db.session
     markings = []
     descriptions = []
     classifications = []
@@ -18,7 +15,7 @@ def import_classifications(file_name):
     config_file = open("import_config.txt", "r+")
     last_date_value = config_file.readlines()[-1]
     last_date_value_parsed = datetime.strptime(last_date_value[0:19], "%Y-%m-%d %H:%M:%S")
-    # exported classification.csv
+
     data = pandas.read_csv(file_name)
     for index, row in data.iterrows():
         created_at = row['created_at']
@@ -80,7 +77,7 @@ def import_classifications(file_name):
                     height=classification['height'],
                     description=list(classification['details'][0].values())[0].rstrip("\n"))
                 markings.append(new_marking)
-                m_to_save.append(new_marking.serialized) #as_dict() misto serialized
+                m_to_save.append(as_dict(new_marking))
 
             if page_description != '':
                 new_description = Description(

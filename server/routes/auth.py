@@ -8,10 +8,10 @@ from server.db.models import User
 from server.schema.auth import UserLoginSchema, UserSchema, UserSignUpSchema
 from server.utils.helpers import generate_token
 
-auth = Blueprint('auth', __name__)
+auth_route = Blueprint('auth', __name__)
 
 
-@auth.route('/register', methods=['POST'])
+@auth_route.route('/register', methods=['POST'])
 @accepts(UserSignUpSchema)
 def signup_user():
     data = request.get_json()
@@ -30,7 +30,7 @@ def signup_user():
     return jsonify({'message': 'registered successfully'})
 
 
-@auth.route('/login', methods=['POST'])
+@auth_route.route('/login', methods=['POST'])
 @responds(schema=UserLoginSchema(), status_code=200)
 def login_user():
     auth = request.authorization
@@ -48,13 +48,13 @@ def login_user():
         token = generate_token(user.id, 'access')
         refresh_token = generate_token(user.id, 'refresh')
 
-        response = jsonify({'token': token, 'refresh_token': refresh_token, 'user': UserSchema().dump(user)})
+        response = jsonify({'token': token, 'refresh_token': refresh_token, 'user_id': user.id})
         return response
 
     raise Unauthorized('could not verify.')
 
 
-@auth.route('/refresh', methods=['POST'])
+@auth_route.route('/refresh', methods=['POST'])
 @responds(schema=UserLoginSchema(), status_code=200)
 def refresh_token():
     req = request.get_json()
@@ -64,5 +64,5 @@ def refresh_token():
     token = generate_token(user.id, 'access')
     new_refresh_token = generate_token(user.id, 'refresh')
     # response = jsonify({'token': token, 'refresh_token': new_refresh_token, 'user': current_user})
-    response = jsonify({'token': token, 'refresh_token': refresh_token, 'user': UserSchema().dump(user)})
+    response = jsonify({'token': token, 'refresh_token': new_refresh_token, 'user': UserSchema().dump(user)})
     return response

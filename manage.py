@@ -36,7 +36,9 @@ def seed_db():
 def import_data():
     # bude potrebovat kontrolovat existujici zaznamy = classification ID
     # nejlepe nejak hlidat data kdy probehl export a pak zacit od nej a jen vynechat existujici zaznamy, nekam si zapsat to datum importu at se to urychli
-    import_classifications('C:/Users/AnetaOpletalova/Desktop/VoynichExports/voynich-manuscript-classifications.csv')
+    # TODO works?
+    path = current_app.config['CLASSIFICATION_PATH']
+    import_classifications(path)
 
 
 

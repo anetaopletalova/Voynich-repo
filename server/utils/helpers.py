@@ -2,8 +2,6 @@ import datetime
 from functools import wraps
 import jwt
 from flask import request, jsonify, current_app
-from sqlalchemy import inspect
-
 from server.db.models import User
 
 
@@ -12,7 +10,7 @@ def token_required(f):
     def decorator(*args, **kwargs):
 
         headers = request.headers
-        bearer = headers.get('Authorization')  # Bearer YourTokenHere
+        bearer = headers.get('Authorization')
 
         if not bearer:
             return jsonify({'message': 'a valid token is missing'})
@@ -50,4 +48,4 @@ def generate_token(user_id, token_type):
 #             for c in inspect(obj).mapper.column_attrs}
 
 def as_dict(model):
-     return {c.name: getattr(model, c.name) for c in model.__table__.columns}
+    return {c.name: getattr(model, c.name) for c in model.__table__.columns}

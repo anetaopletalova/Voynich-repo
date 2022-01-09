@@ -1,18 +1,15 @@
 import json
 from datetime import datetime
-from flask import Blueprint, request, Response
+from flask import Blueprint, request, Response, jsonify
 from flask_accepts import responds
 from sqlalchemy import desc, func
 from werkzeug.exceptions import Unauthorized
 from server.db.database import db
 from server.db.models import Page, Classification, Description, Visited, Note, Marking, Favorite
-from server.schema.page import ClassificationDetailSchema, PageClassificationSchema, PageSchema
+from server.schema.page import ClassificationDetailSchema, PageClassificationSchema, PageSchema, FavoriteSchema
 from server.utils.helpers import token_required, as_dict
 
 page_route = Blueprint('page_route', __name__)
-
-# TODO doplnit bad requesty, co kdyz se nenajde konkretni zaznam, vratit not exists
-
 
 @page_route.route('/pages', methods=['GET'])
 @token_required
@@ -56,7 +53,7 @@ def get_page_classifications(page_id):
             'description': classification['Classification'].description,
             'markings': json.loads(classification['Classification'].markings),
             'visited': True if classification['Visited'] else False,
-            'favorite': True if classification['Favorite'] else False,
+            'favorite': classification['Favorite'].id if classification['Favorite'] else None,
             'user_id': classification['Classification'].user_id,
             'user_name': classification['Classification'].user_name,
             'created_at': classification['Classification'].created_at,
@@ -88,6 +85,7 @@ def visit(current_user, user_id):
 
 @page_route.route('/favorite/<int:user_id>', methods=['POST'])
 @token_required
+@responds(FavoriteSchema, status_code=201)
 def add_to_favorites(current_user, user_id):
     if not (current_user.id == user_id):
         raise Unauthorized('Unauthorized.')
@@ -102,9 +100,11 @@ def add_to_favorites(current_user, user_id):
 
     db.session.add(new_favorite)
     db.session.commit()
+    db.session.flush()
 
+    # TODO vratit id zaznamu vytvoreneho
     status_code = Response(status=201)
-    return status_code
+    return jsonify({'favorite_id': new_favorite.id})
 
 
 @page_route.route('/favorite/<int:user_id>', methods=['DELETE'])
@@ -114,7 +114,7 @@ def delete_from_favorites(current_user, user_id):
         raise Unauthorized('Unauthorized.')
 
     req = request.get_json()
-    favorite_id = req["favorite_id"]
+    favorite_id = request.args.get('favorite_id')
 
     Favorite.query.filter(Favorite.id == favorite_id).delete()
     db.session.commit()
@@ -144,11 +144,10 @@ def classification_details(classification_id):
 
 
 @page_route.route('/classification/user', methods=['GET'])
-# @token_required
+@token_required
 @responds(schema=PageClassificationSchema(many=True), status_code=200)
-def users_classifiations():
+def users_classifications(current_user):
     user_name = request.args.get('user_name')
-
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 20, type=int)
 
@@ -172,23 +171,21 @@ def users_classifiations():
                 'Classification'].description else '',
             'markings': json.loads(classification['Classification'].markings),
             'visited': True if classification['Visited'] else False,
-            'favorite': True if classification['Favorite'] else False,
+            'favorite': classification['Favorite'].id if classification['Favorite'] else None,
             'user_id': classification['Classification'].user_id,
             'user_name': classification['Classification'].user_name,
             'created_at': classification['Classification'].created_at,
         })
 
-    payload = {'page_classifications': classifications_payload}
-
     return classifications_payload
 
 
 @page_route.route('/classification/note/<int:user_id>', methods=['GET'])
-# @token_required
+@token_required
 @responds(schema=PageClassificationSchema(many=True), status_code=200)
-def get_all_with_note(user_id):
-    # if not (current_user.id == user_id):
-    #     raise Unauthorized('Unauthorized.')
+def get_all_with_note(current_user, user_id):
+    if not (current_user.id == user_id):
+        raise Unauthorized('Unauthorized.')
 
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 20, type=int)
@@ -210,12 +207,10 @@ def get_all_with_note(user_id):
             'description': classification['Classification'].description if classification['Classification'].description else '',
             'markings': json.loads(classification['Classification'].markings),
             'visited': True,
-            'favorite': True if classification['Favorite'] else False,
+            'favorite': classification['Favorite'].id if classification['Favorite'] else None,
             'user_id': classification['Classification'].user_id,
             'user_name': classification['Classification'].user_name,
             'created_at': classification['Classification'].created_at,
         })
-
-    payload = {'page_classifications': classifications_payload}
 
     return classifications_payload
