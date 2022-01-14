@@ -1,5 +1,7 @@
 from marshmallow import Schema, fields
 
+from server.schema.notes import NoteSchema
+
 
 class MarkingSchema(Schema):
     classification_id = fields.Integer(missing=None)
@@ -23,7 +25,7 @@ class ClassificationDetailSchema(Schema):
 
 class PageClassificationSchema(Schema):
     classification_id = fields.Integer()
-    note = fields.String()
+    note = fields.Nested(NoteSchema)
     description = fields.String()
     markings = fields.Nested(MarkingSchema(many=True))
     visited = fields.Boolean()
@@ -31,6 +33,7 @@ class PageClassificationSchema(Schema):
     user_id = fields.Integer()
     user_name = fields.String()
     created_at = fields.String()
+    page_id = fields.Integer()
 
 
 class PageSchema(Schema):

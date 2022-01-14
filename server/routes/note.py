@@ -19,7 +19,7 @@ def add_note(current_user, user_id):
         raise Unauthorized('Unauthorized.')
 
     req = request.get_json()
-    note = req["note"]
+    note = req["text"]
     classification_id = req["classification_id"]
     page_id = req["page_id"]
 
@@ -38,14 +38,14 @@ def add_note(current_user, user_id):
 @note_route.route('/note/<int:user_id>', methods=['PUT'])
 @token_required
 @accepts(NoteUpdateSchema)
-@responds(status_code=201)
+@responds(schema=NoteSchema, status_code=201)
 def update_note(current_user, user_id):
 
     if not (current_user.id == user_id):
         raise Unauthorized('Unauthorized.')
 
     req = request.get_json()
-    note = req["note"]
+    note = req["text"]
     note_id = req["note_id"]
 
     if not note:
@@ -53,7 +53,9 @@ def update_note(current_user, user_id):
 
     res = Note.query.filter_by(id=note_id).update({'text': note})
     db.session.commit()
-    return res
+
+    result = Note.query.filter(Note.id == note_id).first()
+    return result
 
 
 @note_route.route('/note/<int:user_id>', methods=['DELETE'])
@@ -63,8 +65,7 @@ def delete_note(current_user, user_id):
     if not (current_user.id == user_id):
         raise Unauthorized('Unauthorized.')
 
-    req = request.get_json()
-    note_id = req["note_id"]
+    note_id = request.args.get("note_id")
 
     Note.query.filter(Note.id == note_id).delete()
     db.session.commit()

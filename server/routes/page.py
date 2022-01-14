@@ -6,6 +6,7 @@ from sqlalchemy import desc, func
 from werkzeug.exceptions import Unauthorized
 from server.db.database import db
 from server.db.models import Page, Classification, Description, Visited, Note, Marking, Favorite
+from server.schema.notes import NoteSchema
 from server.schema.page import ClassificationDetailSchema, PageClassificationSchema, PageSchema, FavoriteSchema
 from server.utils.helpers import token_required, as_dict
 
@@ -49,7 +50,7 @@ def get_page_classifications(page_id):
 
         classifications_payload.append({
             'classification_id': classification['Classification'].id,
-            'note': classification['Note'].text if classification['Note'] else '',
+            'note': NoteSchema().dump(classification['Note']) if classification['Note'] else '',
             'description': classification['Classification'].description,
             'markings': json.loads(classification['Classification'].markings),
             'visited': True if classification['Visited'] else False,
@@ -57,6 +58,7 @@ def get_page_classifications(page_id):
             'user_id': classification['Classification'].user_id,
             'user_name': classification['Classification'].user_name,
             'created_at': classification['Classification'].created_at,
+            'page_id': classification['Classification'].page_id,
         })
 
     return classifications_payload
@@ -175,6 +177,7 @@ def users_classifications(current_user):
             'user_id': classification['Classification'].user_id,
             'user_name': classification['Classification'].user_name,
             'created_at': classification['Classification'].created_at,
+            'page_id': classification['Classification'].page_id,
         })
 
     return classifications_payload
@@ -211,6 +214,7 @@ def get_all_with_note(current_user, user_id):
             'user_id': classification['Classification'].user_id,
             'user_name': classification['Classification'].user_name,
             'created_at': classification['Classification'].created_at,
+            'page_id': classification['Classification'].page_id,
         })
 
     return classifications_payload
