@@ -27,21 +27,35 @@ def get_pages(current_user):
     return output
 
 
-@page_route.route('/page/<int:page_id>', methods=['GET'])
+@page_route.route('/page/<int:user_id>', methods=['GET'])
 @token_required
 @responds(schema=PageClassificationsSchema, status_code=200)
-def get_page_classifications(current_user, page_id):
+def get_page_classifications(current_user, user_id):
+    if not (current_user.id == user_id):
+        raise Unauthorized('Unauthorized.')
+
     date_to = request.args.get('date_to', datetime.utcnow(), type=str)
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 10, type=int)
+    favorite = request.args.get('favorite', default=False, type=bool)
+    withNote = request.args.get('with_note', default=False, type=bool)
+    page_id = request.args.get('page_id', type=int)
+    user_name = request.args.get('user_name')
+
+    print(withNote)
+    print(not withNote)
 
     # TODO pro sjednoceni vsech endpointu staci nastavovat isOuter true a false na zaklade filteru
     qq = db.session.query(Page, Classification, Visited, Note, Favorite).join(Classification, Page.id == Classification.page_id, isouter=True) \
         .filter(Page.id == page_id).filter(func.date(Classification.created_at) <= date_to) \
-        .join(Note, Note.classification_id == Classification.id and Note.user_id == current_user.id, isouter=True) \
-        .join(Favorite, Favorite.classification_id == Classification.id and Favorite.user_id == current_user.id, isouter=True) \
+        .join(Note, Note.classification_id == Classification.id and Note.user_id == current_user.id, isouter= not withNote) \
+        .join(Favorite, Favorite.classification_id == Classification.id and Favorite.user_id == current_user.id, isouter= not favorite) \
         .join(Visited, Visited.classification_id == Classification.id and Visited.user_id == current_user.id, isouter=True) \
         .order_by(desc(Classification.created_at)).paginate(page, per_page, error_out=False)
+
+    if user_name:
+        print(user_name)
+        qq = qq.filter(Classification.user_name == user_name)
 
     page_classifications = [dict(r) for r in qq.items]
 
@@ -132,7 +146,6 @@ def delete_from_favorites(current_user, user_id):
 # @token_required
 @responds(ClassificationDetailSchema, status_code=200)
 def classification_details(classification_id):
-
     markings = Marking.query.filter_by(classification_id=classification_id).all()
     description = Description.query.filter_by(classification_id=classification_id).first()
 
@@ -159,10 +172,13 @@ def users_classifications(current_user):
 
     # TODO also add only for current page ??
 
-    qq = db.session.query(Classification, Visited, Note, Favorite).filter_by(user_name=user_name).filter(func.date(Classification.created_at) <= func.date(date_to)) \
+    qq = db.session.query(Classification, Visited, Note, Favorite).filter_by(user_name=user_name).filter(
+        func.date(Classification.created_at) <= func.date(date_to)) \
         .join(Note, Note.classification_id == Classification.id and Note.user_id == current_user.id, isouter=True) \
-        .join(Favorite, Favorite.classification_id == Classification.id and Favorite.user_id == current_user.id, isouter=True) \
-        .join(Visited, Visited.classification_id == Classification.id and Visited.user_id == current_user.id, isouter=True) \
+        .join(Favorite, Favorite.classification_id == Classification.id and Favorite.user_id == current_user.id,
+              isouter=True) \
+        .join(Visited, Visited.classification_id == Classification.id and Visited.user_id == current_user.id,
+              isouter=True) \
         .order_by(desc(Classification.created_at)).paginate(page, per_page, error_out=False)
 
     page_classifications = [dict(r) for r in qq.items]
@@ -194,34 +210,27 @@ def users_classifications(current_user):
 @page_route.route('/classification/note/<int:user_id>', methods=['GET'])
 @token_required
 @responds(schema=PageClassificationsSchema, status_code=200)
-def get_all_with_note(current_user, user_id):
+def get_all_classifications(current_user, user_id):
     if not (current_user.id == user_id):
         raise Unauthorized('Unauthorized.')
 
+    date_to = request.args.get('date_to', datetime.utcnow(), type=str)
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 10, type=int)
-    page_id = request.args.get('page_id', -1, type=int)
-    date_to = request.args.get('date_to', datetime.utcnow(), type=str)
+    favorite = request.args.get('favorite', default=False, type=bool)
+    withNote = request.args.get('with_note', default=False, type=bool)
 
-    if page_id == -1:
-        qq = db.session.query(Classification, Note, Favorite).join(Note, Note.classification_id == Classification.id and Note.user_id == user_id) \
-            .filter(func.date(Classification.created_at) <= func.date(date_to)) \
-            .join(Favorite, Favorite.classification_id == Classification.id and Favorite.user_id == user_id, isouter=True) \
-            .order_by(desc(Classification.created_at)).paginate(page, per_page, error_out=False)
+    qq = db.session.query(Classification, Visited, Note, Favorite).filter(func.date(Classification.created_at) <= date_to) \
+        .join(Note, Note.classification_id == Classification.id and Note.user_id == current_user.id,
+              isouter=not withNote) \
+        .join(Favorite, Favorite.classification_id == Classification.id and Favorite.user_id == current_user.id,
+              isouter=not favorite) \
+        .order_by(desc(Classification.created_at)).paginate(page, per_page, error_out=False)
 
-        page_classifications = [dict(r) for r in qq.items]
+    page_classifications = [dict(r) for r in qq.items]
 
-        total = qq.total
-    else:
-        qq = db.session.query(Classification, Visited, Note, Favorite) \
-            .filter(Page.id == page_id).filter(func.date(Classification.created_at) <= func.date(date_to)) \
-            .join(Note, Note.classification_id == Classification.id and Note.user_id == user_id) \
-            .join(Favorite, Favorite.classification_id == Classification.id and Favorite.user_id == user_id, isouter=True) \
-            .order_by(desc(Classification.created_at)).paginate(page, per_page, error_out=False)
+    total = qq.total
 
-        page_classifications = [dict(r) for r in qq.items]
-
-        total = qq.total
 
     classifications_payload = []
     for classification in page_classifications:
@@ -231,7 +240,8 @@ def get_all_with_note(current_user, user_id):
         classifications_payload.append({
             'classification_id': classification['Classification'].id,
             'note': NoteSchema().dump(classification['Note']) if classification['Note'] else '',
-            'description': classification['Classification'].description if classification['Classification'].description else '',
+            'description': classification['Classification'].description if classification[
+                'Classification'].description else '',
             'markings': json.loads(classification['Classification'].markings),
             'visited': True,
             'favorite': classification['Favorite'].id if classification['Favorite'] else None,
@@ -243,55 +253,57 @@ def get_all_with_note(current_user, user_id):
 
     return jsonify({'items': classifications_payload, 'total_items': total})
 
-
-@page_route.route('/classification/favorite/<int:user_id>', methods=['GET'])
-@token_required
-@responds(schema=PageClassificationsSchema, status_code=200)
-def get_all_favorite(current_user, user_id):
-    if not (current_user.id == user_id):
-        raise Unauthorized('Unauthorized.')
-
-    page = request.args.get('page', 1, type=int)
-    per_page = request.args.get('per_page', 10, type=int)
-    page_id = request.args.get('page_id', -1, type=int)
-    date_to = request.args.get('date_to', datetime.utcnow(), type=str)
-
-    if page_id == -1:
-        qq = db.session.query(Classification, Note, Favorite).filter(func.date(Classification.created_at) <= func.date(date_to)) \
-            .join(Note, Note.classification_id == Classification.id and Note.user_id == user_id, isouter=True) \
-            .join(Favorite, Favorite.classification_id == Classification.id and Favorite.user_id == user_id) \
-            .order_by(desc(Classification.created_at)).paginate(page, per_page, error_out=False)
-
-        page_classifications = [dict(r) for r in qq.items]
-
-        total = qq.total
-    else:
-        qq = db.session.query(Classification, Visited, Note, Favorite) \
-            .filter(Page.id == page_id).filter(func.date(Classification.created_at) <= func.date(date_to)) \
-            .join(Note, Note.classification_id == Classification.id and Note.user_id == user_id, isouter=True) \
-            .join(Favorite, Favorite.classification_id == Classification.id and Favorite.user_id == user_id) \
-            .order_by(desc(Classification.created_at)).paginate(page, per_page, error_out=False)
-
-        page_classifications = [dict(r) for r in qq.items]
-
-        total = qq.total
-
-    classifications_payload = []
-    for classification in page_classifications:
-        if classification['Classification'] is None:
-            continue
-
-        classifications_payload.append({
-            'classification_id': classification['Classification'].id,
-            'note': NoteSchema().dump(classification['Note']) if classification['Note'] else '',
-            'description': classification['Classification'].description if classification['Classification'].description else '',
-            'markings': json.loads(classification['Classification'].markings),
-            'visited': True,
-            'favorite': classification['Favorite'].id if classification['Favorite'] else None,
-            'user_id': classification['Classification'].user_id,
-            'user_name': classification['Classification'].user_name,
-            'created_at': classification['Classification'].created_at,
-            'page_id': classification['Classification'].page_id,
-        })
-
-    return jsonify({'items': classifications_payload, 'total_items': total})
+#
+# @page_route.route('/classification/favorite/<int:user_id>', methods=['GET'])
+# @token_required
+# @responds(schema=PageClassificationsSchema, status_code=200)
+# def get_all_favorite(current_user, user_id):
+#     if not (current_user.id == user_id):
+#         raise Unauthorized('Unauthorized.')
+#
+#     page = request.args.get('page', 1, type=int)
+#     per_page = request.args.get('per_page', 10, type=int)
+#     page_id = request.args.get('page_id', -1, type=int)
+#     date_to = request.args.get('date_to', datetime.utcnow(), type=str)
+#
+#     if page_id == -1:
+#         qq = db.session.query(Classification, Note, Favorite).filter(
+#             func.date(Classification.created_at) <= func.date(date_to)) \
+#             .join(Note, Note.classification_id == Classification.id and Note.user_id == user_id, isouter=True) \
+#             .join(Favorite, Favorite.classification_id == Classification.id and Favorite.user_id == user_id) \
+#             .order_by(desc(Classification.created_at)).paginate(page, per_page, error_out=False)
+#
+#         page_classifications = [dict(r) for r in qq.items]
+#
+#         total = qq.total
+#     else:
+#         qq = db.session.query(Classification, Visited, Note, Favorite) \
+#             .filter(Page.id == page_id).filter(func.date(Classification.created_at) <= func.date(date_to)) \
+#             .join(Note, Note.classification_id == Classification.id and Note.user_id == user_id, isouter=True) \
+#             .join(Favorite, Favorite.classification_id == Classification.id and Favorite.user_id == user_id) \
+#             .order_by(desc(Classification.created_at)).paginate(page, per_page, error_out=False)
+#
+#         page_classifications = [dict(r) for r in qq.items]
+#
+#         total = qq.total
+#
+#     classifications_payload = []
+#     for classification in page_classifications:
+#         if classification['Classification'] is None:
+#             continue
+#
+#         classifications_payload.append({
+#             'classification_id': classification['Classification'].id,
+#             'note': NoteSchema().dump(classification['Note']) if classification['Note'] else '',
+#             'description': classification['Classification'].description if classification[
+#                 'Classification'].description else '',
+#             'markings': json.loads(classification['Classification'].markings),
+#             'visited': True,
+#             'favorite': classification['Favorite'].id if classification['Favorite'] else None,
+#             'user_id': classification['Classification'].user_id,
+#             'user_name': classification['Classification'].user_name,
+#             'created_at': classification['Classification'].created_at,
+#             'page_id': classification['Classification'].page_id,
+#         })
+#
+#     return jsonify({'items': classifications_payload, 'total_items': total})
