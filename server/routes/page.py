@@ -33,10 +33,7 @@ def get_pages(current_user):
 def get_page_classifications(current_user, page_id):
     date_to = request.args.get('date_to', datetime.utcnow(), type=str)
     page = request.args.get('page', 1, type=int)
-    per_page = request.args.get('per_page', 5, type=int)
-
-    xx = func.date('2021-03-27')
-    print(xx)
+    per_page = request.args.get('per_page', 10, type=int)
 
     # TODO pro sjednoceni vsech endpointu staci nastavovat isOuter true a false na zaklade filteru
     qq = db.session.query(Page, Classification, Visited, Note, Favorite).join(Classification, Page.id == Classification.page_id, isouter=True) \
@@ -156,9 +153,11 @@ def classification_details(classification_id):
 def users_classifications(current_user):
     user_name = request.args.get('user_name')
     page = request.args.get('page', 1, type=int)
-    per_page = request.args.get('per_page', 20, type=int)
+    per_page = request.args.get('per_page', 10, type=int)
     date_to = request.args.get('date_to', datetime.utcnow(), type=str)
     page_id = request.args.get('page_id', -1, type=int)
+
+    # TODO also add only for current page ??
 
     qq = db.session.query(Classification, Visited, Note, Favorite).filter_by(user_name=user_name).filter(func.date(Classification.created_at) <= func.date(date_to)) \
         .join(Note, Note.classification_id == Classification.id and Note.user_id == current_user.id, isouter=True) \
@@ -200,7 +199,7 @@ def get_all_with_note(current_user, user_id):
         raise Unauthorized('Unauthorized.')
 
     page = request.args.get('page', 1, type=int)
-    per_page = request.args.get('per_page', 20, type=int)
+    per_page = request.args.get('per_page', 10, type=int)
     page_id = request.args.get('page_id', -1, type=int)
     date_to = request.args.get('date_to', datetime.utcnow(), type=str)
 
@@ -253,7 +252,7 @@ def get_all_favorite(current_user, user_id):
         raise Unauthorized('Unauthorized.')
 
     page = request.args.get('page', 1, type=int)
-    per_page = request.args.get('per_page', 5, type=int)
+    per_page = request.args.get('per_page', 10, type=int)
     page_id = request.args.get('page_id', -1, type=int)
     date_to = request.args.get('date_to', datetime.utcnow(), type=str)
 
