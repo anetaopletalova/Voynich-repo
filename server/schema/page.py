@@ -36,6 +36,11 @@ class PageClassificationSchema(Schema):
     page_id = fields.Integer()
 
 
+class PageClassificationsSchema(Schema):
+    items: fields.Nested(PageClassificationSchema(many=True))
+    total_items: fields.Integer()
+
+
 class PageSchema(Schema):
     id = fields.Integer()
     name = fields.String(missing=None)
