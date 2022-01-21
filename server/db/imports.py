@@ -67,6 +67,7 @@ def import_classifications(file_name):
             if classif_id is None:
                 print(classif_id)
 
+            # TODO check if it is possible to add ID here
             for classification in data_classifications:
                 new_marking = Marking(
                     classification_id=classif_id,

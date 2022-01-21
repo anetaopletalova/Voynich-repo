@@ -34,6 +34,7 @@ class PageClassificationSchema(Schema):
     user_name = fields.String()
     created_at = fields.String()
     page_id = fields.Integer()
+    page_name = fields.String()
 
 
 class PageClassificationsSchema(Schema):

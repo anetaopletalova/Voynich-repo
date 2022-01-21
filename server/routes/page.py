@@ -9,6 +9,7 @@ from server.db.models import Page, Classification, Description, Visited, Note, M
 from server.schema.notes import NoteSchema
 from server.schema.page import ClassificationDetailSchema, PageClassificationsSchema, PageSchema, FavoriteSchema
 from server.utils.helpers import token_required, as_dict
+from flask_restx import inputs
 
 page_route = Blueprint('page_route', __name__)
 
@@ -37,12 +38,11 @@ def get_page_classifications(current_user, user_id):
     date_to = request.args.get('date_to', datetime.utcnow(), type=str)
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 10, type=int)
-    favorite = request.args.get('favorite', default=False, type=bool)
-    withNote = request.args.get('with_note', default=False, type=bool)
+    favorite = request.args.get('favorite', default=False, type=inputs.boolean)
+    withNote = request.args.get('with_note', default=False, type=inputs.boolean)
     page_id = request.args.get('page_id', type=int)
     user_name = request.args.get('user_name')
 
-    # TODO pro sjednoceni vsech endpointu staci nastavovat isOuter true a false na zaklade filteru
     qq = db.session.query(Page, Classification, Visited, Note, Favorite).join(Classification, Page.id == Classification.page_id, isouter=True) \
         .filter(Page.id == page_id).filter(func.date(Classification.created_at) <= date_to) \
         .join(Note, Note.classification_id == Classification.id and Note.user_id == current_user.id, isouter= not withNote) \
@@ -76,6 +76,7 @@ def get_page_classifications(current_user, user_id):
             'user_name': classification['Classification'].user_name,
             'created_at': classification['Classification'].created_at,
             'page_id': classification['Classification'].page_id,
+            'page_name': classification['Page'].name,
         })
 
     return jsonify({'items': classifications_payload, 'total_items': total})
@@ -172,13 +173,16 @@ def get_all_classifications(current_user, user_id):
     withNote = request.args.get('with_note', default=False, type=bool)
     user_name = request.args.get('user_name')
 
-    qq = db.session.query(Classification, Visited, Note, Favorite).filter(func.date(Classification.created_at) <= date_to) \
+    qq = db.session.query(Page, Classification, Visited, Note, Favorite).join(Classification,
+                                                                              Page.id == Classification.page_id,
+                                                                              isouter=True) \
+        .filter(func.date(Classification.created_at) <= date_to) \
         .join(Note, Note.classification_id == Classification.id and Note.user_id == current_user.id,
               isouter=not withNote) \
         .join(Favorite, Favorite.classification_id == Classification.id and Favorite.user_id == current_user.id,
               isouter=not favorite) \
         .join(Visited, Visited.classification_id == Classification.id and Visited.user_id == current_user.id,
-              isouter=True) \
+              isouter=True)
 
     if user_name:
         print(user_name)
@@ -208,6 +212,7 @@ def get_all_classifications(current_user, user_id):
             'user_name': classification['Classification'].user_name,
             'created_at': classification['Classification'].created_at,
             'page_id': classification['Classification'].page_id,
+            'page_name': classification['Page'].name,
         })
 
     return jsonify({'items': classifications_payload, 'total_items': total})
