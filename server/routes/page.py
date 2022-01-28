@@ -42,6 +42,7 @@ def get_page_classifications(current_user, user_id):
     withNote = request.args.get('with_note', default=False, type=inputs.boolean)
     page_id = request.args.get('page_id', type=int)
     user_name = request.args.get('user_name')
+    print(favorite, withNote)
 
     qq = db.session.query(Page, Classification, Visited, Note, Favorite).join(Classification, Page.id == Classification.page_id, isouter=True) \
         .filter(Page.id == page_id).filter(func.date(Classification.created_at) <= date_to) \
@@ -52,7 +53,7 @@ def get_page_classifications(current_user, user_id):
 
     if user_name:
         print(user_name)
-        qq = qq.filter(Classification.user_name == user_name)
+        qq = qq.filter(Classification.user_name == user_name).all()
 
     qq = qq.order_by(desc(Classification.created_at)).paginate(page, per_page, error_out=False)
     page_classifications = [dict(r) for r in qq.items]
@@ -169,10 +170,10 @@ def get_all_classifications(current_user, user_id):
     date_to = request.args.get('date_to', datetime.utcnow(), type=str)
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 10, type=int)
-    favorite = request.args.get('favorite', default=False, type=bool)
-    withNote = request.args.get('with_note', default=False, type=bool)
+    favorite = request.args.get('favorite', default=False, type=inputs.boolean)
+    withNote = request.args.get('with_note', default=False, type=inputs.boolean)
     user_name = request.args.get('user_name')
-
+    print(favorite, withNote)
     qq = db.session.query(Page, Classification, Visited, Note, Favorite).join(Classification,
                                                                               Page.id == Classification.page_id,
                                                                               isouter=True) \
