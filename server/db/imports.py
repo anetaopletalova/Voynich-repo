@@ -1,3 +1,4 @@
+import math
 from datetime import datetime
 import pandas
 import json
@@ -93,7 +94,8 @@ def import_classifications(file_name):
             new_classification = Classification(
                 id=classif_id,
                 page_id=page_file.id,
-                user_id=int(user_id) if isinstance(user_id, int) else -1,
+                # check this, looks like its always -1
+                user_id=int(user_id) if not math.isnan(user_id) else -1,
                 user_name=user_name,
                 created_at=created_at,
                 markings=json.dumps(m_to_save),
