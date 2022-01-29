@@ -159,7 +159,7 @@ def classification_details(classification_id):
 
     return classifications_payload
 
-# TODO not tested yet!!
+
 @page_route.route('/classification/all/<int:user_id>', methods=['GET'])
 @token_required
 @responds(schema=PageClassificationsSchema, status_code=200)

@@ -17,14 +17,17 @@ app.register_blueprint(note_route)
 
 CORS(app)
 
+@app.route("/")
+def hello():
+    return "Hello World!"
 
 db.init_app(app)
 with app.app_context():
     # db.drop_all()
-    db.create_all()
+    # db.create_all()
     # seed_db()
     # import_data()
-    db.session.commit()
+    # db.session.commit()
 
     pass
 

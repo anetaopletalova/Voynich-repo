@@ -32,6 +32,9 @@ def import_classifications(file_name):
         if last_date_value_parsed and parsed_created_at < last_date_value_parsed:
             continue
 
+        if parsed_created_at == last_date_value_parsed:
+            continue
+
         annotations = pandas.read_json(row['annotations'])
         an_data = json.loads(annotations.to_json())
 
