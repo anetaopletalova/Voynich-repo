@@ -53,11 +53,9 @@ def import_classifications(file_name):
             data_classifications = an_data['value']['0']
             page_description = an_data['value']['1']
 
-            if classif_id is None:
-                print(classif_id)
-
-            # TODO check if it is possible to add ID here
             for classification in data_classifications:
+                if classification['details'][0]['value'] == '':
+                    continue
                 new_marking = Marking(
                     classification_id=classif_id,
                     page_id=page_file.id,
@@ -79,10 +77,11 @@ def import_classifications(file_name):
                 new_page_description = page_description
 
         if page_file is not None:
+            if new_page_description == '' and len(m_to_save) == 0:
+                continue
             new_classification = Classification(
                 id=classif_id,
                 page_id=page_file.id,
-                # check this, looks like its always -1
                 user_id=int(user_id) if not math.isnan(user_id) else -1,
                 user_name=user_name,
                 created_at=created_at,
