@@ -1,7 +1,4 @@
 from datetime import datetime
-
-from sqlalchemy import func
-
 from server.db.database import db
 
 
@@ -33,18 +30,6 @@ class Classification(db.Model):
 
     page = db.relationship('Page', foreign_keys='Classification.page_id')
 
-    # # @property
-    # def serialized(self):
-    #     return {
-    #         'page_id': self.page_id,
-    #         'user_id': self.user_id,
-    #         'user_name': self.user_name,
-    #         'created_at': self.created_at,
-    #         'markings': json.loads(self.markings),
-    #         'description': self.description
-    #     }
-
-
 class Marking(db.Model):
     __tablename__ = "marking"
 
@@ -60,20 +45,6 @@ class Marking(db.Model):
     page = db.relationship('Page', foreign_keys='Marking.page_id')
     classification = db.relationship('Classification', foreign_keys='Marking.classification_id')
 
-    # @property
-    # def serialized(self):
-    #     return {
-    #         'id': self.id,
-    #         'classification_id': self.classification_id,
-    #         'page_id': self.page_id,
-    #         'x': self.x,
-    #         'y': self.y,
-    #         'width': self.width,
-    #         'height': self.height,
-    #         'description': self.description,
-    #     }
-
-
 class Description(db.Model):
     __tablename__ = "description"
 
@@ -84,15 +55,6 @@ class Description(db.Model):
 
     page = db.relationship('Page', foreign_keys='Description.page_id')
     classification = db.relationship('Classification', foreign_keys='Description.classification_id')
-
-    # @property
-    # def serialized(self):
-    #     return {
-    #         'id': self.id,
-    #         'page_id ': self.page_id,
-    #         'classification_id': self.classification_id,
-    #         'description': self.description,
-    #     }
 
 
 class Visited(db.Model):

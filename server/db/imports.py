@@ -21,13 +21,12 @@ def import_classifications(file_name):
     for index, row in data.iterrows():
         created_at = row['created_at']
 
-        # pokud jsem na poslednim radku, zapisu si toto datum jako nove posledni
+        # if last record, set into config
         if index == data.index[-1]:
             config_file.write("\n"+created_at)
 
         # filter out dates before selected date
         parsed_created_at = datetime.strptime(created_at[0:19], "%Y-%m-%d %H:%M:%S")
-        # datetime.strptime(created[0:10], "%Y-%m-%d")
 
         if last_date_value_parsed and parsed_created_at < last_date_value_parsed:
             continue
@@ -45,23 +44,9 @@ def import_classifications(file_name):
         user_id = row['user_id']
         user_name = row['user_name']
 
-        # najit podle fileName odpovidajici ID stranky v DB
         page_file = Page.query.filter_by(name=filename).first()
-        # FIX
-        # if page_file is not None:
-        #     new_classification = Classification(
-        #         id=classif_id,
-        #         page_id=page_file.id,
-        #         user_id=user_id,
-        #         user_name=user_name,
-        #         created_at=created_at
-        #     )
-        #     classifications.append(new_classification)
-        # na jedne strance jeden clovek co vse udelal - ulozit to Classification
-        # do Description a Marking pak uz konkretni ohodnoceni s classification_id odpovidajici tomuto (mozna i page_id)
 
         # '0' for task 0 , '1' for task 1
-        x = pandas.DataFrame(an_data['value']['0'])
         m_to_save = []
         new_page_description = ''
         if len(pandas.DataFrame(an_data['value']['0'])) > 0:

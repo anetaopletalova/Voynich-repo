@@ -5,10 +5,10 @@ from flask_accepts import responds
 from sqlalchemy import desc, func
 from werkzeug.exceptions import Unauthorized
 from server.db.database import db
-from server.db.models import Page, Classification, Description, Visited, Note, Marking, Favorite
+from server.db.models import Page, Classification, Visited, Note, Favorite
 from server.schema.notes import NoteSchema
-from server.schema.page import ClassificationDetailSchema, PageClassificationsSchema, PageSchema, FavoriteSchema
-from server.utils.helpers import token_required, as_dict
+from server.schema.page import PageClassificationsSchema, PageSchema, FavoriteSchema
+from server.utils.helpers import token_required
 from flask_restx import inputs
 
 page_route = Blueprint('page_route', __name__)
@@ -42,7 +42,6 @@ def get_page_classifications(current_user, user_id):
     withNote = request.args.get('with_note', default=False, type=inputs.boolean)
     page_id = request.args.get('page_id', type=int)
     user_name = request.args.get('user_name')
-    print(favorite, withNote)
 
     qq = db.session.query(Page, Classification, Visited, Note, Favorite).join(Classification, Page.id == Classification.page_id, isouter=True) \
         .filter(Page.id == page_id).filter(func.date(Classification.created_at) <= date_to) \
@@ -52,7 +51,6 @@ def get_page_classifications(current_user, user_id):
 
 
     if user_name:
-        print(user_name)
         qq = qq.filter(Classification.user_name == user_name).all()
 
     qq = qq.order_by(desc(Classification.created_at)).paginate(page, per_page, error_out=False)
@@ -140,26 +138,6 @@ def delete_from_favorites(current_user, user_id):
     status_code = Response(status=204)
     return status_code
 
-
-# TODO NOT WORKING
-@page_route.route('/classification/<int:classification_id>', methods=['GET'])
-# @token_required
-@responds(ClassificationDetailSchema, status_code=200)
-def classification_details(classification_id):
-    markings = Marking.query.filter_by(classification_id=classification_id).all()
-    description = Description.query.filter_by(classification_id=classification_id).first()
-
-    # TODO page_id?? bude vubec tento endpoint k necemu?
-
-    classifications_payload = {
-        # 'page_id': description.page_id,
-        'description': description if description else None,
-        'markings': [as_dict(x) for x in markings]
-    }
-
-    return classifications_payload
-
-
 @page_route.route('/classification/all/<int:user_id>', methods=['GET'])
 @token_required
 @responds(schema=PageClassificationsSchema, status_code=200)
@@ -173,7 +151,6 @@ def get_all_classifications(current_user, user_id):
     favorite = request.args.get('favorite', default=False, type=inputs.boolean)
     withNote = request.args.get('with_note', default=False, type=inputs.boolean)
     user_name = request.args.get('user_name')
-    print(favorite, withNote)
     qq = db.session.query(Page, Classification, Visited, Note, Favorite).join(Classification,
                                                                               Page.id == Classification.page_id,
                                                                               isouter=True) \
@@ -186,7 +163,6 @@ def get_all_classifications(current_user, user_id):
               isouter=True)
 
     if user_name:
-        print(user_name)
         qq = qq.filter(Classification.user_name == user_name)
 
     qq = qq.order_by(desc(Classification.created_at)).paginate(page, per_page, error_out=False)

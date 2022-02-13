@@ -1,7 +1,7 @@
 import datetime
 from functools import wraps
 import jwt
-from flask import request, jsonify, current_app
+from flask import request, jsonify, current_app, make_response
 from server.db.models import User
 
 
@@ -13,7 +13,7 @@ def token_required(f):
         bearer = headers.get('Authorization')
 
         if not bearer:
-            return jsonify({'message': 'a valid token is missing'})
+            return make_response('not valid', 401)
 
         token = bearer.split()[1]
 
@@ -21,7 +21,7 @@ def token_required(f):
             data = jwt.decode(token, current_app.config['SECRET_KEY'], 'HS256')
             current_user = User.query.filter_by(id=data['uid']).first()
         except:
-            return jsonify({'message': 'token is invalid'})
+            return make_response('token is invalid', 401)
 
         return f(current_user, *args, **kwargs)
 
