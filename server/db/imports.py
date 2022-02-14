@@ -2,8 +2,11 @@ import math
 from datetime import datetime
 import pandas
 import json
+
+from werkzeug.security import generate_password_hash
+
 from server.db.database import db
-from server.db.models import Page, Classification, Marking, Description
+from server.db.models import Page, Classification, Marking, Description, User
 from server.utils.helpers import as_dict
 
 
@@ -95,6 +98,19 @@ def import_classifications(file_name):
     s.commit()
     s.bulk_save_objects(markings)
     s.bulk_save_objects(descriptions)
+    s.commit()
+
+    return
+
+
+def create_user(email):
+    s = db.session
+    hashed_password = generate_password_hash('password', method='sha256')
+    new_user = User(
+        email=email,
+        password=hashed_password
+    )
+    s.add(new_user)
     s.commit()
 
     return

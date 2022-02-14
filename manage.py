@@ -4,7 +4,7 @@ from werkzeug.security import generate_password_hash
 
 from server.db.data import page_files
 from server.db.database import db
-from server.db.imports import import_classifications
+from server.db.imports import import_classifications, create_user
 from server.db.models import Page, User
 import click
 
@@ -44,17 +44,19 @@ def import_data():
     import_classifications(path)
 
 
-@cli.command("create_user")
+@cli.command("add_user")
 @click.argument('email')
-def create_user(email):
+def add_user(email):
     print('new user', email)
-    hashed_password = generate_password_hash('password', method='sha256')
-    new_user = User(
-        email=email,
-        password=hashed_password
-    )
-    db.session.add(new_user)
-    db.session.commit()
+    create_user(email)
+
+
+@cli.command("full_db_setup")
+def full_db_setup():
+    create_db()
+    seed_db()
+    import_data()
+    create_user("admin")
 
 
 if __name__ == "__main__":
