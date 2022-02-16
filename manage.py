@@ -1,11 +1,9 @@
 from flask import current_app
 from flask.cli import FlaskGroup
-from werkzeug.security import generate_password_hash
-
 from server.db.data import page_files
 from server.db.database import db
 from server.db.imports import import_classifications, create_user
-from server.db.models import Page, User
+from server.db.models import Page
 import click
 
 cli = FlaskGroup(current_app)
@@ -28,13 +26,6 @@ def seed_db():
         pages.append(new_page)
     db.session.bulk_save_objects(pages)
     db.session.commit()
-
-
-@cli.command("import_data")
-def import_data():
-    print('import')
-    path = current_app.config['CLASSIFICATION_PATH']
-    import_classifications(path)
 
 
 @cli.command("import_data")
