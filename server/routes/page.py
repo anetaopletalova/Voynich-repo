@@ -5,10 +5,10 @@ from flask_accepts import responds
 from sqlalchemy import desc, func
 from werkzeug.exceptions import Unauthorized
 from server.db.database import db
-from server.db.models import Page, Classification, Visited, Note, Favorite
+from server.db.models import Page, Classification, Visited, Note, Favorite, Marking
 from server.schema.notes import NoteSchema
-from server.schema.page import PageClassificationsSchema, PageSchema, FavoriteSchema
-from server.utils.helpers import token_required
+from server.schema.page import PageClassificationsSchema, PageSchema, FavoriteSchema, MarkingSchema
+from server.utils.helpers import token_required, as_dict, point_in_polygon
 from flask_restx import inputs
 
 page_route = Blueprint('page_route', __name__)
@@ -193,3 +193,24 @@ def get_all_classifications(current_user, user_id):
         })
 
     return jsonify({'items': classifications_payload, 'total_items': total})
+
+
+@page_route.route('/markings/<int:page_id>', methods=['GET'])
+@token_required
+@responds(schema=MarkingSchema(many=True), status_code=200)
+def get_markings_by_coordinates(current_user, page_id):
+    if not current_user.id:
+        raise Unauthorized('Unauthorized.')
+
+    x = request.args.get('x', type=float)
+    y = request.args.get('y', type=float)
+
+    query = db.session.query(Marking).filter(Marking.page_id == page_id).all()
+    markings = [as_dict(r) for r in query]
+
+    selected_polygons = []
+    for marking in markings:
+        if point_in_polygon([x, y], marking['x'], marking['y'], marking['width'], marking['height']):
+            selected_polygons.append(marking)
+
+    return jsonify({'items': selected_polygons})

@@ -30,6 +30,7 @@ class Classification(db.Model):
 
     page = db.relationship('Page', foreign_keys='Classification.page_id')
 
+
 class Marking(db.Model):
     __tablename__ = "marking"
 
@@ -44,6 +45,7 @@ class Marking(db.Model):
 
     page = db.relationship('Page', foreign_keys='Marking.page_id')
     classification = db.relationship('Classification', foreign_keys='Marking.classification_id')
+
 
 class Description(db.Model):
     __tablename__ = "description"
@@ -75,7 +77,6 @@ class Note(db.Model):
     text = db.Column(db.Text)
     classification_id = db.Column(db.Integer, db.ForeignKey(Classification.id))
     user_id = db.Column(db.Integer, db.ForeignKey(User.id))
-    # TODO
     created_at = db.Column(db.DateTime, default=datetime.utcnow())
     updated_at = db.Column(db.DateTime, default=datetime.utcnow(), onupdate=datetime.utcnow())
     page_id = db.Column(db.Integer, db.ForeignKey(Page.id))
