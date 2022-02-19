@@ -44,9 +44,20 @@ def add_user(email):
 
 @cli.command("full_db_setup")
 def full_db_setup():
-    create_db()
-    seed_db()
-    import_data()
+    print('creating DB')
+    db.drop_all()
+    db.create_all()
+    db.session.commit()
+    print('seed_db')
+    pages = []
+    for page in page_files:
+        new_page = Page(name=page)
+        pages.append(new_page)
+    db.session.bulk_save_objects(pages)
+    db.session.commit()
+    print('import')
+    path = current_app.config['CLASSIFICATION_PATH']
+    import_classifications(path)
     create_user("admin")
 
 
