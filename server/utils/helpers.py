@@ -43,9 +43,15 @@ def generate_token(user_id, token_type):
                       algorithm='HS256')
 
 
-# def object_as_dict(obj):
-#     return {c.key: getattr(obj, c.key)
-#             for c in inspect(obj).mapper.column_attrs}
-
 def as_dict(model):
     return {c.name: getattr(model, c.name) for c in model.__table__.columns}
+
+
+def point_in_polygon(point, x, y, width, height):
+    x2, y2 = x + width, y + height
+    print(point)
+
+    if x < point[0] < x2:
+        if y < point[1] < y2:
+            return True
+    return False
