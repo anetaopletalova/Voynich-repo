@@ -1,4 +1,4 @@
-# Voynich-repo
+# Running the API with database
 
 To run this in a Docker container you need to install Docker and Python (I am using version 3.8.6)
 
