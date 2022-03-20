@@ -3,13 +3,18 @@ from marshmallow import Schema, fields
 from server.schema.notes import NoteSchema
 
 
+class CoordinatesSchema(Schema):
+    x = fields.Float(required=True)
+    y = fields.Float(required=True)
+
+
 class MarkingSchema(Schema):
-    classification_id = fields.Integer(missing=None)
-    page_id = fields.Integer(missing=None)
-    x = fields.Float(missing=None)
-    y = fields.Float(missing=None)
-    width = fields.Float(missing=None)
-    height = fields.Float(missing=None)
+    classification_id = fields.Integer(required=True)
+    page_id = fields.Integer(required=True)
+    x = fields.Float(required=True)
+    y = fields.Float(required=True)
+    width = fields.Float(required=True)
+    height = fields.Float(required=True)
     description = fields.String(missing=None)
 
 
@@ -18,7 +23,7 @@ class DescriptionSchema(Schema):
 
 
 class ClassificationDetailSchema(Schema):
-    page_id = fields.Integer(missing=None)
+    page_id = fields.Integer(required=True)
     description = fields.Nested(DescriptionSchema)
     markings = fields.Nested(MarkingSchema(many=True))
 
@@ -49,5 +54,5 @@ class PageSchema(Schema):
 
 class FavoriteSchema(Schema):
     id = fields.Integer()
-    classification_id = fields.Integer()
-    page_id = fields.Integer()
+    classification_id = fields.Integer(required=True)
+    page_id = fields.Integer(required=True)

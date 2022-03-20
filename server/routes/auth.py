@@ -17,8 +17,12 @@ def signup_user():
     data = request.get_json()
 
     hashed_password = generate_password_hash(data['password'], method='sha256')
+    user = User.query.filter_by(email=data.get('email')).first()
 
-    # TODO difference between data.get() and data[]
+    if user:
+        print('User already exists')
+        return jsonify({'message': 'User already exists.'})
+
     new_user = User(
         email=data.get('email'),
         password=hashed_password
@@ -27,7 +31,7 @@ def signup_user():
     db.session.add(new_user)
     db.session.commit()
 
-    return jsonify({'message': 'registered successfully'})
+    return jsonify({'message': 'Registered successfully.'})
 
 
 @auth_route.route('/login', methods=['POST'])
@@ -36,7 +40,6 @@ def login_user():
     auth = request.authorization
 
     if not auth or not auth.username or not auth.password:
-        # BadRequests instead of make_response??
         return make_response('could not verify', 401, {'WWW.Authentication': 'Basic realm: "login required"'})
 
     user = User.query.filter_by(email=auth.username).first()
@@ -76,7 +79,6 @@ def password_change(current_user, user_id):
     req = request.get_json()
 
     user = User.query.filter_by(id=user_id).first()
-    print(user.password, req['old_password'], check_password_hash(user.password, req['old_password']))
 
     if check_password_hash(user.password, req['old_password']):
         hashed_new_password = generate_password_hash(req['new_password'], method='sha256')

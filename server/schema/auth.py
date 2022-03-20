@@ -1,4 +1,4 @@
-from marshmallow import Schema, fields, post_load, validate
+from marshmallow import Schema, fields, validate
 
 
 class UserSchema(Schema):
@@ -8,15 +8,11 @@ class UserSchema(Schema):
                              validate=validate.Length(min=0, max=50),
                              load_only=True, required=True)
 
-    # @post_load
-    # def make_object(self, data, **kwargs):
-    #     return User(**data)
-
 
 class UserLoginSchema(Schema):
-    user = fields.Integer()
-    token = fields.String()
-    refresh_token = fields.String()
+    user = fields.Integer(required=True)
+    token = fields.String(required=True)
+    refresh_token = fields.String(required=True)
 
 
 class UserSignUpSchema(Schema):

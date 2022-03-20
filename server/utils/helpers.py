@@ -1,7 +1,7 @@
 import datetime
 from functools import wraps
 import jwt
-from flask import request, jsonify, current_app, make_response
+from flask import request, current_app, make_response
 from server.db.models import User
 
 

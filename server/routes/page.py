@@ -1,13 +1,13 @@
 import json
 from datetime import datetime
 from flask import Blueprint, request, Response, jsonify
-from flask_accepts import responds
+from flask_accepts import responds, accepts
 from sqlalchemy import desc, func
 from werkzeug.exceptions import Unauthorized
 from server.db.database import db
 from server.db.models import Page, Classification, Visited, Note, Favorite, Marking
 from server.schema.notes import NoteSchema
-from server.schema.page import PageClassificationsSchema, PageSchema, FavoriteSchema, MarkingSchema
+from server.schema.page import PageClassificationsSchema, PageSchema, FavoriteSchema, MarkingSchema, CoordinatesSchema
 from server.utils.helpers import token_required, as_dict, point_in_polygon
 from flask_restx import inputs
 
@@ -43,21 +43,24 @@ def get_page_classifications(current_user, user_id):
     page_id = request.args.get('page_id', type=int)
     user_name = request.args.get('user_name')
 
-    qq = db.session.query(Page, Classification, Visited, Note, Favorite).join(Classification, Page.id == Classification.page_id, isouter=True) \
+    query = db.session.query(Page, Classification, Visited, Note, Favorite).join(Classification,
+                                                                                 Page.id == Classification.page_id,
+                                                                                 isouter=True) \
         .filter(Page.id == page_id).filter(func.date(Classification.created_at) <= date_to) \
-        .join(Note, Note.classification_id == Classification.id and Note.user_id == current_user.id, isouter= not withNote) \
-        .join(Favorite, Favorite.classification_id == Classification.id and Favorite.user_id == current_user.id, isouter= not favorite) \
-        .join(Visited, Visited.classification_id == Classification.id and Visited.user_id == current_user.id, isouter=True) \
-
+        .join(Note, Note.classification_id == Classification.id and Note.user_id == current_user.id,
+              isouter=not withNote) \
+        .join(Favorite, Favorite.classification_id == Classification.id and Favorite.user_id == current_user.id,
+              isouter=not favorite) \
+        .join(Visited, Visited.classification_id == Classification.id and Visited.user_id == current_user.id,
+              isouter=True)
 
     if user_name:
-        qq = qq.filter(Classification.user_name == user_name).all()
+        query = query.filter(Classification.user_name == user_name).all()
 
-    qq = qq.order_by(desc(Classification.created_at)).paginate(page, per_page, error_out=False)
-    page_classifications = [dict(r) for r in qq.items]
+    query = query.order_by(desc(Classification.created_at)).paginate(page, per_page, error_out=False)
+    page_classifications = [dict(r) for r in query.items]
 
-    total = qq.total
-
+    total = query.total
 
     classifications_payload = []
     for classification in page_classifications:
@@ -138,6 +141,7 @@ def delete_from_favorites(current_user, user_id):
     status_code = Response(status=204)
     return status_code
 
+
 @page_route.route('/classification/all/<int:user_id>', methods=['GET'])
 @token_required
 @responds(schema=PageClassificationsSchema, status_code=200)
@@ -151,9 +155,9 @@ def get_all_classifications(current_user, user_id):
     favorite = request.args.get('favorite', default=False, type=inputs.boolean)
     withNote = request.args.get('with_note', default=False, type=inputs.boolean)
     user_name = request.args.get('user_name')
-    qq = db.session.query(Page, Classification, Visited, Note, Favorite).join(Classification,
-                                                                              Page.id == Classification.page_id,
-                                                                              isouter=True) \
+    query = db.session.query(Page, Classification, Visited, Note, Favorite).join(Classification,
+                                                                                 Page.id == Classification.page_id,
+                                                                                 isouter=True) \
         .filter(func.date(Classification.created_at) <= date_to) \
         .join(Note, Note.classification_id == Classification.id and Note.user_id == current_user.id,
               isouter=not withNote) \
@@ -163,14 +167,13 @@ def get_all_classifications(current_user, user_id):
               isouter=True)
 
     if user_name:
-        qq = qq.filter(Classification.user_name == user_name)
+        query = query.filter(Classification.user_name == user_name)
 
-    qq = qq.order_by(desc(Classification.created_at)).paginate(page, per_page, error_out=False)
+    query = query.order_by(desc(Classification.created_at)).paginate(page, per_page, error_out=False)
 
-    page_classifications = [dict(r) for r in qq.items]
+    page_classifications = [dict(r) for r in query.items]
 
-    total = qq.total
-
+    total = query.total
 
     classifications_payload = []
     for classification in page_classifications:
@@ -197,6 +200,7 @@ def get_all_classifications(current_user, user_id):
 
 @page_route.route('/markings/<int:page_id>', methods=['GET'])
 @token_required
+@accepts(CoordinatesSchema)
 @responds(schema=MarkingSchema(many=True), status_code=200)
 def get_markings_by_coordinates(current_user, page_id):
     if not current_user.id:
