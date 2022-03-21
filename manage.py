@@ -64,4 +64,4 @@ def full_db_setup():
 if __name__ == "__main__":
     print('cli')
 
-    cli()
+    # cli()
