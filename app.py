@@ -29,5 +29,7 @@ with app.app_context():
 
     pass
 
+print(os.getenv("DATABASE_URL", "sqlite://"))
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 8080)))
