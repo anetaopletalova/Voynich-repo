@@ -15,4 +15,4 @@ ENV PORT 8080
 ENV DATABASE_URL postgresql+psycopg2://postgres:postgres@voynich-344713%3Aeurope-central2%3Avoynichdb:5432/voynichdb
 
 # Run gunicorn bound to the 8080 port.
-CMD exec gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 8 --timeout 0 main:app
+CMD exec gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 8 --timeout 0 app:app
