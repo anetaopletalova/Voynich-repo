@@ -1,5 +1,5 @@
 from flask import current_app
-from flask.cli import FlaskGroup
+from flask.cli import FlaskGroup, with_appcontext
 from server.db.data import page_files
 from server.db.database import db
 from server.db.imports import import_classifications, create_user
@@ -9,7 +9,8 @@ import click
 cli = FlaskGroup(current_app)
 
 
-@cli.command("create_db")
+@click.command("create_db")
+@with_appcontext
 def create_db():
     print('creating DB')
     db.drop_all()
@@ -17,7 +18,8 @@ def create_db():
     db.session.commit()
 
 
-@cli.command("seed_db")
+@click.command("seed_db")
+@with_appcontext
 def seed_db():
     print('seed_db')
     pages = []
@@ -28,21 +30,24 @@ def seed_db():
     db.session.commit()
 
 
-@cli.command("import_data")
+@click.command("import_data")
+@with_appcontext
 def import_data():
     print('import')
     path = current_app.config['CLASSIFICATION_PATH']
     import_classifications(path)
 
 
-@cli.command("add_user")
+@click.command("add_user")
 @click.argument('email')
+@with_appcontext
 def add_user(email):
     print('new user', email)
     create_user(email)
 
 
-@cli.command("full_db_setup")
+@click.command("full_db_setup")
+@with_appcontext
 def full_db_setup():
     print('creating DB')
     db.drop_all()
@@ -63,4 +68,5 @@ def full_db_setup():
 
 if __name__ == "__main__":
     print('cli')
+
     cli()
